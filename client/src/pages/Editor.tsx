@@ -265,10 +265,16 @@ export default function Editor() {
                 />
               )}
               {viewMode === 'preview' && (
-                <MarkdownPreview content={currentDoc.content} />
+                <MarkdownPreview 
+                  content={currentDoc.content} 
+                  onChange={handleContentChange}
+                />
               )}
               {viewMode === 'plain' && (
-                <PlainTextView content={currentDoc.content} />
+                <PlainTextView 
+                  content={currentDoc.content}
+                  onChange={handleContentChange}
+                />
               )}
               {viewMode === 'outline' && (
                 <div className="h-full overflow-y-auto p-8">
