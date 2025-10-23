@@ -5,7 +5,7 @@ import OutlineView from '@/components/OutlineView';
 import MarkdownPreview from '@/components/MarkdownPreview';
 import PlainTextView from '@/components/PlainTextView';
 import ViewModeToolbar from '@/components/ViewModeToolbar';
-import Minimap from '@/components/Minimap';
+import FloatingMinimap from '@/components/FloatingMinimap';
 import CharacterStats from '@/components/CharacterStats';
 import TagManager from '@/components/TagManager';
 import SaveDialog from '@/components/SaveDialog';
@@ -15,7 +15,8 @@ import NotesEditor from '@/components/NotesEditor';
 import { parseOutline } from '@/lib/outline';
 import { OutlineItem } from '@/types';
 import { Button } from '@/components/ui/button';
-import { Save, FileText, Menu, BarChart, BookOpen, Layers } from 'lucide-react';
+import { Save, FileText, Menu, BarChart, BookOpen, Layers, Map } from 'lucide-react';
+import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
 type EditorMode = 'document' | 'synopsis' | 'notes';
 
@@ -43,7 +44,8 @@ export default function Editor() {
 
   const [showProjectSidebar, setShowProjectSidebar] = useState(true);
   const [showOutlineSidebar, setShowOutlineSidebar] = useState(true);
-  const [showMinimap, setShowMinimap] = useState(true);
+  const [showMinimap, setShowMinimap] = useState(false);
+  const [showFloatingMinimap, setShowFloatingMinimap] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const [showTags, setShowTags] = useState(false);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
@@ -72,6 +74,11 @@ export default function Editor() {
       item.id === itemId ? { ...item, collapsed: !item.collapsed } : item
     );
     setOutlineItems(updatedItems);
+  };
+
+  const handleOutlineReorder = (newItems: OutlineItem[]) => {
+    setOutlineItems(newItems);
+    // TODO: ドキュメントの実際の構造も並び替える
   };
 
   const handleMinimapLineClick = (line: number) => {
@@ -137,14 +144,14 @@ export default function Editor() {
       <header className="flex items-center justify-between px-4 py-2 border-b border-border bg-background">
         <div className="flex items-center gap-4">
           <Button
-            variant="ghost"
+            variant={showProjectSidebar ? 'default' : 'ghost'}
             size="sm"
             onClick={() => setShowProjectSidebar(!showProjectSidebar)}
           >
             <Layers className="w-4 h-4" />
           </Button>
           <Button
-            variant="ghost"
+            variant={showOutlineSidebar ? 'default' : 'ghost'}
             size="sm"
             onClick={() => setShowOutlineSidebar(!showOutlineSidebar)}
           >
@@ -185,6 +192,13 @@ export default function Editor() {
               >
                 <BookOpen className="w-4 h-4" />
               </Button>
+              <Button
+                variant={showFloatingMinimap ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setShowFloatingMinimap(!showFloatingMinimap)}
+              >
+                <Map className="w-4 h-4" />
+              </Button>
             </>
           )}
           <Button variant="outline" size="sm" onClick={() => setSaveDialogOpen(true)}>
@@ -200,142 +214,160 @@ export default function Editor() {
       )}
 
       {/* メインコンテンツ */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* プロジェクトサイドバー */}
-        {showProjectSidebar && (
-          <ProjectSidebar
-            project={currentProject}
-            currentDocumentId={currentDocumentId}
-            onDocumentSelect={(id) => {
-              setCurrentDocumentId(id);
-              setEditorMode('document');
-            }}
-            onDocumentCreate={handleDocumentCreate}
-            onDocumentDelete={handleDocumentDelete}
-            onShowSynopsis={handleShowSynopsis}
-            onShowNotes={handleShowNotes}
-          />
-        )}
-
-        {/* アウトラインサイドバー（ドキュメントモードのみ） */}
-        {showOutlineSidebar && editorMode === 'document' && (
-          <div className="w-64 flex-shrink-0 flex flex-col">
-            <div className="flex-1 overflow-hidden">
-              <OutlineView
-                items={outlineItems}
-                onItemClick={handleOutlineItemClick}
-                onToggle={handleOutlineToggle}
-              />
-            </div>
-            {showStats && currentDoc && (
-              <CharacterStats
-                content={currentDoc.content}
-                selectedText={selectedText}
-              />
-            )}
-          </div>
-        )}
-
-        {/* エディタエリア */}
-        <div className="flex-1 overflow-hidden">
-          {editorMode === 'synopsis' && (
-            <SynopsisEditor
-              synopsis={currentProject.synopsis}
-              onSave={handleSynopsisSave}
-              onClose={() => setEditorMode('document')}
-            />
-          )}
-          
-          {editorMode === 'notes' && (
-            <NotesEditor
-              notes={currentProject.notes}
-              onSave={handleNotesSave}
-              onClose={() => setEditorMode('document')}
-            />
-          )}
-          
-          {editorMode === 'document' && currentDoc && (
+      <div className="flex-1 overflow-hidden">
+        <PanelGroup direction="horizontal">
+          {/* プロジェクトサイドバー */}
+          {showProjectSidebar && (
             <>
-              {viewMode === 'markdown' && (
-                <MarkdownEditor
-                  value={currentDoc.content}
-                  onChange={handleContentChange}
-                  onSelectionChange={setSelectedText}
-                  onCursorChange={setCursorPosition}
+              <Panel defaultSize={15} minSize={10} maxSize={30}>
+                <ProjectSidebar
+                  project={currentProject}
+                  currentDocumentId={currentDocumentId}
+                  onDocumentSelect={(id) => {
+                    setCurrentDocumentId(id);
+                    setEditorMode('document');
+                  }}
+                  onDocumentCreate={handleDocumentCreate}
+                  onDocumentDelete={handleDocumentDelete}
+                  onShowSynopsis={handleShowSynopsis}
+                  onShowNotes={handleShowNotes}
+                />
+              </Panel>
+              <PanelResizeHandle className="w-1 bg-border hover:bg-primary transition-colors" />
+            </>
+          )}
+
+          {/* アウトラインサイドバー（ドキュメントモードのみ） */}
+          {showOutlineSidebar && editorMode === 'document' && (
+            <>
+              <Panel defaultSize={15} minSize={10} maxSize={30}>
+                <div className="h-full flex flex-col">
+                  <div className="flex-1 overflow-hidden">
+                    <OutlineView
+                      items={outlineItems}
+                      onItemClick={handleOutlineItemClick}
+                      onToggle={handleOutlineToggle}
+                      onReorder={handleOutlineReorder}
+                    />
+                  </div>
+                  {showStats && currentDoc && (
+                    <CharacterStats
+                      content={currentDoc.content}
+                      selectedText={selectedText}
+                    />
+                  )}
+                </div>
+              </Panel>
+              <PanelResizeHandle className="w-1 bg-border hover:bg-primary transition-colors" />
+            </>
+          )}
+
+          {/* エディタエリア */}
+          <Panel defaultSize={70} minSize={30}>
+            <div className="h-full overflow-hidden">
+              {editorMode === 'synopsis' && (
+                <SynopsisEditor
+                  synopsis={currentProject.synopsis}
+                  onSave={handleSynopsisSave}
+                  onClose={() => setEditorMode('document')}
                 />
               )}
-              {viewMode === 'preview' && (
-                <MarkdownPreview 
-                  content={currentDoc.content} 
-                  onChange={handleContentChange}
+              
+              {editorMode === 'notes' && (
+                <NotesEditor
+                  notes={currentProject.notes}
+                  onSave={handleNotesSave}
+                  onClose={() => setEditorMode('document')}
                 />
               )}
-              {viewMode === 'plain' && (
-                <PlainTextView 
-                  content={currentDoc.content}
-                  onChange={handleContentChange}
-                />
-              )}
-              {viewMode === 'outline' && (
-                <div className="h-full overflow-y-auto p-8">
-                  <div className="max-w-4xl mx-auto">
-                    <h2 className="text-2xl font-bold mb-4">アウトライン表示</h2>
-                    <div className="space-y-2">
-                      {outlineItems.map((item) => (
-                        <div
-                          key={item.id}
-                          className="p-2 hover:bg-accent rounded cursor-pointer"
-                          style={{ paddingLeft: `${item.level * 16}px` }}
-                          onClick={() => handleOutlineItemClick(item)}
-                        >
-                          <span style={{ fontSize: `${20 - item.level * 2}px` }}>
-                            {item.text}
-                          </span>
+              
+              {editorMode === 'document' && currentDoc && (
+                <>
+                  {viewMode === 'markdown' && (
+                    <MarkdownEditor
+                      value={currentDoc.content}
+                      onChange={handleContentChange}
+                      onSelectionChange={setSelectedText}
+                      onCursorChange={setCursorPosition}
+                    />
+                  )}
+                  {viewMode === 'preview' && (
+                    <MarkdownPreview 
+                      content={currentDoc.content} 
+                      onChange={handleContentChange}
+                    />
+                  )}
+                  {viewMode === 'plain' && (
+                    <PlainTextView 
+                      content={currentDoc.content}
+                      onChange={handleContentChange}
+                    />
+                  )}
+                  {viewMode === 'outline' && (
+                    <div className="h-full overflow-y-auto p-8">
+                      <div className="max-w-4xl mx-auto">
+                        <h2 className="text-2xl font-bold mb-4">アウトライン表示</h2>
+                        <div className="space-y-2">
+                          {outlineItems.map((item) => (
+                            <div
+                              key={item.id}
+                              className="p-2 hover:bg-accent rounded cursor-pointer"
+                              style={{ paddingLeft: `${item.level * 16}px` }}
+                              onClick={() => handleOutlineItemClick(item)}
+                            >
+                              <span style={{ fontSize: `${20 - item.level * 2}px` }}>
+                                {item.text}
+                              </span>
+                            </div>
+                          ))}
                         </div>
-                      ))}
+                      </div>
                     </div>
+                  )}
+                </>
+              )}
+              
+              {editorMode === 'document' && !currentDoc && (
+                <div className="h-full flex items-center justify-center">
+                  <div className="text-center">
+                    <FileText className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+                    <p className="text-lg text-muted-foreground mb-4">
+                      ドキュメントが選択されていません
+                    </p>
+                    <Button onClick={() => handleDocumentCreate('新規ドキュメント')}>
+                      新規ドキュメントを作成
+                    </Button>
                   </div>
                 </div>
               )}
-            </>
-          )}
-          
-          {editorMode === 'document' && !currentDoc && (
-            <div className="h-full flex items-center justify-center">
-              <div className="text-center">
-                <FileText className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-                <p className="text-lg text-muted-foreground mb-4">
-                  ドキュメントが選択されていません
-                </p>
-                <Button onClick={() => handleDocumentCreate('新規ドキュメント')}>
-                  新規ドキュメントを作成
-                </Button>
-              </div>
             </div>
-          )}
-        </div>
+          </Panel>
 
-        {/* 右サイドバー（ミニマップまたはタグ、ドキュメントモードのみ） */}
-        {editorMode === 'document' && currentDoc && (
-          <>
-            {showTags ? (
-              <div className="w-80 flex-shrink-0">
+          {/* タグサイドバー（ドキュメントモードのみ） */}
+          {showTags && editorMode === 'document' && currentDoc && (
+            <>
+              <PanelResizeHandle className="w-1 bg-border hover:bg-primary transition-colors" />
+              <Panel defaultSize={20} minSize={15} maxSize={40}>
                 <TagManager
                   content={currentDoc.content}
                   tags={currentProject.tags}
                   onTagUpdate={handleTagUpdate}
                 />
-              </div>
-            ) : showMinimap ? (
-              <Minimap
-                content={currentDoc.content}
-                outlineItems={outlineItems}
-                onLineClick={handleMinimapLineClick}
-              />
-            ) : null}
-          </>
-        )}
+              </Panel>
+            </>
+          )}
+        </PanelGroup>
       </div>
+
+      {/* フローティングミニマップ */}
+      {showFloatingMinimap && editorMode === 'document' && currentDoc && (
+        <FloatingMinimap
+          content={currentDoc.content}
+          outlineItems={outlineItems}
+          onLineClick={handleMinimapLineClick}
+          onClose={() => setShowFloatingMinimap(false)}
+        />
+      )}
 
       {/* 保存ダイアログ */}
       <SaveDialog
