@@ -12,67 +12,6 @@ interface MarkdownSection {
 }
 
 /**
- * 見出しキーワードパターン（outline.tsと同じ）
- */
-const headingKeywords = [
-  /^第[一二三四五六七八九十\d]+章/,
-  /^第[一二三四五六七八九十\d]+部/,
-  /^第[一二三四五六七八九十\d]+節/,
-  /^セクション[\d-]+/,
-  /^サブセクション[\d-]+/,
-  /^section[\d-]+/i,
-  /^chapter[\d-]+/i,
-];
-
-/**
- * 行が見出しかどうかを判定し、レベルを返す
- */
-function detectHeading(line: string): { isHeading: boolean; level: number; text: string } | null {
-  // まず#記号付きの見出しをチェック
-  const hashMatch = line.match(/^(#{1,6})\s+(.+)$/);
-  if (hashMatch) {
-    return {
-      isHeading: true,
-      level: hashMatch[1].length,
-      text: hashMatch[2].trim()
-    };
-  }
-  
-  // #記号がない場合、ヒューリスティックで検出
-  const trimmedLine = line.trim();
-  
-  // 空行はスキップ
-  if (!trimmedLine) return null;
-  
-  // 長すぎる行は見出しではない
-  if (trimmedLine.length >= 100) return null;
-  
-  // キーワードマッチング
-  for (const pattern of headingKeywords) {
-    if (pattern.test(trimmedLine)) {
-      let level = 1;
-      
-      // レベルを推測
-      if (/^第[一二三四五六七八九十\d]+章/.test(trimmedLine) || /^chapter/i.test(trimmedLine)) {
-        level = 1;
-      } else if (/^セクション/.test(trimmedLine) || /^section/i.test(trimmedLine)) {
-        level = 2;
-      } else if (/^サブセクション/.test(trimmedLine)) {
-        level = 3;
-      }
-      
-      return {
-        isHeading: true,
-        level,
-        text: trimmedLine
-      };
-    }
-  }
-  
-  return null;
-}
-
-/**
  * Markdownドキュメントをセクションに分割
  */
 export function parseMarkdownSections(content: string): MarkdownSection[] {
@@ -82,9 +21,9 @@ export function parseMarkdownSections(content: string): MarkdownSection[] {
 
   for (let index = 0; index < lines.length; index++) {
     const line = lines[index];
-    const headingInfo = detectHeading(line);
+    const headingMatch = line.match(/^(#{1,6})\s+(.+)$/);
     
-    if (headingInfo && headingInfo.isHeading) {
+    if (headingMatch) {
       // 前のセクションを保存
       if (currentSection !== null) {
         currentSection.endLine = index - 1;
@@ -95,8 +34,8 @@ export function parseMarkdownSections(content: string): MarkdownSection[] {
       currentSection = {
         startLine: index,
         endLine: index,
-        level: headingInfo.level,
-        heading: headingInfo.text,
+        level: headingMatch[1].length,
+        heading: headingMatch[2],
         content: [line]
       };
     } else if (currentSection !== null) {
@@ -140,11 +79,6 @@ export function reorderMarkdownByOutline(
   const lines = content.split('\n');
   const sections = parseMarkdownSections(content);
   
-  console.log('=== reorderMarkdownByOutline ===');
-  console.log('Sections found:', sections.length);
-  console.log('Sections:', sections.map(s => ({ level: s.level, heading: s.heading, lines: s.content.length })));
-  console.log('New outline:', newOutline.map(i => ({ level: i.level, text: i.text })));
-  
   // セクションとその子セクションを取得
   const getSectionWithChildren = (section: MarkdownSection): string[] => {
     const result: string[] = [];
@@ -186,8 +120,6 @@ export function reorderMarkdownByOutline(
       !processedSections.has(s)
     );
     
-    console.log(`Looking for: "${item.text}" (level ${item.level})`, section ? 'FOUND' : 'NOT FOUND');
-    
     if (section) {
       const sectionLines = getSectionWithChildren(section);
       if (sectionLines.length > 0) {
@@ -204,9 +136,6 @@ export function reorderMarkdownByOutline(
       }
     }
   });
-  
-  console.log('New lines count:', newLines.length);
-  console.log('Original lines count:', lines.length);
   
   return newLines.join('\n');
 }
@@ -230,9 +159,6 @@ export function changeHeadingLevel(
     const match = line.match(/^#{1,6}\s+(.+)$/);
     if (match) {
       lines[lineNumber] = '#'.repeat(newLevel) + ' ' + match[1];
-    } else {
-      // #記号がない場合は追加しない（元の形式を維持）
-      // レベル変更は見出しキーワードの変更で対応する必要がある
     }
   } else {
     // 子要素も含めて変更
