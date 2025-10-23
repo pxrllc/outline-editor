@@ -93,6 +93,10 @@ export default function OutlineView({ items, onItemClick, onToggle, onReorder, o
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
+    
+    console.log('=== OutlineView handleDragEnd ===');
+    console.log('Active:', active.id);
+    console.log('Over:', over?.id);
 
     if (over && active.id !== over.id) {
       const oldIndex = items.findIndex((item) => item.id === active.id);
@@ -108,9 +112,19 @@ export default function OutlineView({ items, onItemClick, onToggle, onReorder, o
         const remainingItems = items.filter(item => !itemsToMove.includes(item));
         
         // 新しい位置を計算
-        let insertIndex = remainingItems.findIndex(item => item.id === over.id);
+        const targetItem = items[newIndex];
+        let insertIndex = remainingItems.findIndex(item => item.id === targetItem.id);
+        
+        // 下に移動する場合は、ターゲットの次の位置に挿入
         if (oldIndex < newIndex) {
-          insertIndex += 1;
+          // ターゲットとその子要素の後に挿入
+          const targetChildren = getChildren(targetItem);
+          if (targetChildren.length > 0) {
+            const lastChild = targetChildren[targetChildren.length - 1];
+            insertIndex = remainingItems.findIndex(item => item.id === lastChild.id) + 1;
+          } else {
+            insertIndex += 1;
+          }
         }
         
         // 挿入
@@ -120,10 +134,14 @@ export default function OutlineView({ items, onItemClick, onToggle, onReorder, o
           ...remainingItems.slice(insertIndex)
         ];
         
+        console.log('Calling onReorder with children');
+        console.log('New items:', newItems.map(i => i.text));
         onReorder(newItems);
       } else {
         // 単独で移動
         const newItems = arrayMove(items, oldIndex, newIndex);
+        console.log('Calling onReorder without children');
+        console.log('New items:', newItems.map(i => i.text));
         onReorder(newItems);
       }
     }
@@ -241,7 +259,7 @@ function SortableOutlineItem({
         {/* ドラッグハンドル */}
         <div 
           {...listeners}
-          className="opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing"
+          className="opacity-30 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing"
         >
           <GripVertical className="w-3 h-3 text-muted-foreground" />
         </div>

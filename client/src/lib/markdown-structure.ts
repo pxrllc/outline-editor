@@ -79,22 +79,18 @@ export function reorderMarkdownByOutline(
   const lines = content.split('\n');
   const sections = parseMarkdownSections(content);
   
-  // 各アウトライン項目に対応するセクションとその子セクションを取得
-  const getSectionWithChildren = (item: OutlineItem): string[] => {
-    const section = sections.find(s => s.startLine === item.line);
-    if (!section) return [];
-    
-    // 子セクションを見つける
+  // セクションとその子セクションを取得
+  const getSectionWithChildren = (section: MarkdownSection): string[] => {
     const result: string[] = [];
-    let i = sections.indexOf(section);
+    const sectionIndex = sections.indexOf(section);
     
-    if (i === -1) return [];
+    if (sectionIndex === -1) return [];
     
     // このセクションを追加
     result.push(...section.content);
     
     // 次のセクションが子セクション（より深いレベル）なら追加
-    i++;
+    let i = sectionIndex + 1;
     while (i < sections.length && sections[i].level > section.level) {
       result.push(...sections[i].content);
       i++;
@@ -105,7 +101,7 @@ export function reorderMarkdownByOutline(
   
   // 新しい順序でセクションを再構築
   const newLines: string[] = [];
-  const processedSections = new Set<number>();
+  const processedSections = new Set<MarkdownSection>();
   
   // ドキュメントの先頭部分（最初の見出しより前）を保持
   const firstHeadingSection = sections.find(s => s.level > 0);
@@ -117,22 +113,26 @@ export function reorderMarkdownByOutline(
   
   // 新しい順序でセクションを追加
   newOutline.forEach(item => {
-    const section = sections.find(s => s.startLine === item.line);
+    // テキストとレベルでセクションを検索
+    const section = sections.find(s => 
+      s.heading === item.text && 
+      s.level === item.level &&
+      !processedSections.has(s)
+    );
+    
     if (section) {
+      const sectionLines = getSectionWithChildren(section);
+      if (sectionLines.length > 0) {
+        newLines.push(...sectionLines);
+      }
+      
+      // このセクションとその子セクションを処理済みとしてマーク
+      processedSections.add(section);
       const sectionIndex = sections.indexOf(section);
-      if (!processedSections.has(sectionIndex)) {
-        const sectionLines = getSectionWithChildren(item);
-        if (sectionLines.length > 0) {
-          newLines.push(...sectionLines);
-        }
-        
-        // このセクションとその子セクションを処理済みとしてマーク
-        processedSections.add(sectionIndex);
-        let i = sectionIndex + 1;
-        while (i < sections.length && sections[i].level > section.level) {
-          processedSections.add(i);
-          i++;
-        }
+      let i = sectionIndex + 1;
+      while (i < sections.length && sections[i].level > section.level) {
+        processedSections.add(sections[i]);
+        i++;
       }
     }
   });

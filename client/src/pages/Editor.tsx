@@ -1,72 +1,89 @@
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useEditor } from '@/contexts/EditorContext';
+import { OutlineItem } from '@/types';
+import { parseOutline } from '@/lib/outline';
+import { reorderMarkdownByOutline, changeHeadingLevel } from '@/lib/markdown-structure';
+import { Button } from '@/components/ui/button';
+import { 
+  FileText, 
+  Save, 
+  Menu, 
+  FolderOpen,
+  Map,
+  BarChart,
+  BookOpen
+} from 'lucide-react';
 import MarkdownEditor from '@/components/MarkdownEditor';
 import OutlineView from '@/components/OutlineView';
 import MarkdownPreview from '@/components/MarkdownPreview';
 import PlainTextView from '@/components/PlainTextView';
 import ViewModeToolbar from '@/components/ViewModeToolbar';
-import FloatingMinimap from '@/components/FloatingMinimap';
-import CharacterStats from '@/components/CharacterStats';
-import TagManager from '@/components/TagManager';
-import SaveDialog from '@/components/SaveDialog';
 import ProjectSidebar from '@/components/ProjectSidebar';
 import SynopsisEditor from '@/components/SynopsisEditor';
 import NotesEditor from '@/components/NotesEditor';
-import { parseOutline } from '@/lib/outline';
-import { OutlineItem } from '@/types';
-import { Button } from '@/components/ui/button';
-import { Save, FileText, Menu, BarChart, BookOpen, Layers, Map } from 'lucide-react';
+import CharacterStats from '@/components/CharacterStats';
+import TagManager from '@/components/TagManager';
+import FloatingMinimap from '@/components/FloatingMinimap';
+import SaveDialog from '@/components/SaveDialog';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
+type ViewMode = 'outline' | 'markdown' | 'preview' | 'plain';
 type EditorMode = 'document' | 'synopsis' | 'notes';
 
 export default function Editor() {
   const {
     currentProject,
     currentDocumentId,
-    viewMode,
-    outlineItems,
-    selectedText,
-    setViewMode,
-    setOutlineItems,
     setCurrentDocumentId,
     updateDocumentContent,
     getCurrentDocument,
     createNewDocument,
     deleteDocument,
     saveProject,
-    setCurrentProject,
-    setSelectedText,
-    setCursorPosition,
     updateProjectSynopsis,
-    updateProjectNotes
+    updateProjectNotes,
   } = useEditor();
-
-  const [showProjectSidebar, setShowProjectSidebar] = useState(true);
-  const [showOutlineSidebar, setShowOutlineSidebar] = useState(true);
-  const [showMinimap, setShowMinimap] = useState(false);
-  const [showFloatingMinimap, setShowFloatingMinimap] = useState(false);
-  const [showStats, setShowStats] = useState(false);
-  const [showTags, setShowTags] = useState(false);
-  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
-  const [editorMode, setEditorMode] = useState<EditorMode>('document');
   
   const currentDoc = getCurrentDocument();
 
-  // ドキュメントの内容が変更されたらアウトラインを更新
+  const [viewMode, setViewMode] = useState<ViewMode>('markdown');
+  
+  // viewMode変更をログ出力
   useEffect(() => {
-    if (currentDoc && editorMode === 'document') {
-      const items = parseOutline(currentDoc.content);
-      setOutlineItems(items);
+    console.log('=== viewMode changed ===', viewMode);
+  }, [viewMode]);
+  const [editorMode, setEditorMode] = useState<EditorMode>('document');
+  const [outlineItems, setOutlineItems] = useState<OutlineItem[]>([]);
+  const [selectedText, setSelectedText] = useState('');
+  const [cursorPosition, setCursorPosition] = useState({ line: 0, ch: 0 });
+  const [showProjectSidebar, setShowProjectSidebar] = useState(true);
+  const [showOutlineSidebar, setShowOutlineSidebar] = useState(true);
+  const [showStats, setShowStats] = useState(false);
+  const [showTags, setShowTags] = useState(false);
+  const [showFloatingMinimap, setShowFloatingMinimap] = useState(false);
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+
+  useEffect(() => {
+    if (currentDoc) {
+      console.log('=== useEffect parsing outline ===');
+      console.log('Current doc:', currentDoc);
+      console.log('Content length:', currentDoc.content?.length);
+      console.log('Content preview:', currentDoc.content?.substring(0, 200));
+      const outline = parseOutline(currentDoc.content || '');
+      console.log('Parsed outline:', outline);
+      setOutlineItems(outline);
+    } else {
+      console.log('No current doc');
+      setOutlineItems([]);
     }
-  }, [currentDoc?.content, editorMode, setOutlineItems]);
+  }, [currentDoc, viewMode]);
 
   const handleContentChange = (newContent: string) => {
     updateDocumentContent(newContent);
   };
 
   const handleOutlineItemClick = (item: OutlineItem) => {
-    console.log('Jump to line:', item.line);
+    console.log('Navigate to line:', item.line);
   };
 
   const handleOutlineToggle = (itemId: string) => {
@@ -79,12 +96,18 @@ export default function Editor() {
   const handleOutlineReorder = (newItems: OutlineItem[]) => {
     if (!currentDoc) return;
     
+    console.log('=== handleOutlineReorder ===');
+    console.log('Old items:', outlineItems.map(i => i.text));
+    console.log('New items:', newItems.map(i => i.text));
+    
     // Markdownドキュメントの構造を並び替える
-    const { reorderMarkdownByOutline } = require('@/lib/markdown-structure');
     const newContent = reorderMarkdownByOutline(currentDoc.content, outlineItems, newItems);
     
+    console.log('Old content:', currentDoc.content);
+    console.log('New content:', newContent);
+    
     updateDocumentContent(newContent);
-    setOutlineItems(newItems);
+    // setOutlineItemsは削除 - useEffectで自動的に更新される
   };
 
   const handleIndentChange = (itemId: string, newLevel: number) => {
@@ -94,7 +117,6 @@ export default function Editor() {
     if (!item) return;
     
     // Markdownの見出しレベルを変更（子要素も含めて）
-    const { changeHeadingLevel } = require('@/lib/markdown-structure');
     const newContent = changeHeadingLevel(
       currentDoc.content,
       item.line,
@@ -114,26 +136,12 @@ export default function Editor() {
     saveProject(name);
   };
 
-  const handleTagUpdate = (tags: Record<string, string>) => {
-    if (currentProject) {
-      setCurrentProject({
-        ...currentProject,
-        tags,
-        updatedAt: Date.now()
-      });
-    }
+  const handleDocumentCreate = (name: string) => {
+    createNewDocument(name);
   };
 
-  const handleDocumentCreate = (title: string) => {
-    const newDoc = createNewDocument(title);
-    setCurrentDocumentId(newDoc.id);
-    setEditorMode('document');
-  };
-
-  const handleDocumentDelete = (documentId: string) => {
-    if (confirm('このドキュメントを削除してもよろしいですか？')) {
-      deleteDocument(documentId);
-    }
+  const handleDocumentDelete = (id: string) => {
+    deleteDocument(id);
   };
 
   const handleShowSynopsis = () => {
@@ -145,58 +153,53 @@ export default function Editor() {
   };
 
   const handleSynopsisSave = (synopsis: string) => {
-    updateProjectSynopsis(synopsis);
+    if (currentProject) {
+      updateProjectSynopsis(synopsis);
+    }
   };
 
   const handleNotesSave = (notes: string) => {
-    updateProjectNotes(notes);
+    if (currentProject) {
+      updateProjectNotes(notes);
+    }
   };
 
-  if (!currentProject) {
-    return (
-      <div className="h-screen flex items-center justify-center bg-background">
-        <div className="text-center">
-          <FileText className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-          <p className="text-lg text-muted-foreground">プロジェクトを読み込んでいます...</p>
-        </div>
-      </div>
-    );
-  }
+  // レイアウトの判定
+  const isOutlineView = viewMode === 'outline';
+  const isPreviewView = viewMode === 'preview';
+  
+  console.log('=== Layout ===', { viewMode, isOutlineView, isPreviewView, editorMode });
+  const showRightPanel = (editorMode === 'synopsis' || editorMode === 'notes') || 
+                         (isPreviewView && editorMode === 'document');
 
   return (
     <div className="h-screen flex flex-col bg-background">
       {/* ヘッダー */}
-      <header className="flex items-center justify-between px-4 py-2 border-b border-border bg-background">
-        <div className="flex items-center gap-4">
+      <header className="border-b border-border px-4 py-2 flex items-center justify-between">
+        <div className="flex items-center gap-2">
           <Button
-            variant={showProjectSidebar ? 'default' : 'ghost'}
+            variant="ghost"
             size="sm"
             onClick={() => setShowProjectSidebar(!showProjectSidebar)}
           >
-            <Layers className="w-4 h-4" />
+            <FolderOpen className="w-4 h-4" />
           </Button>
           <Button
-            variant={showOutlineSidebar ? 'default' : 'ghost'}
+            variant="ghost"
             size="sm"
             onClick={() => setShowOutlineSidebar(!showOutlineSidebar)}
           >
             <Menu className="w-4 h-4" />
           </Button>
           <h1 className="text-lg font-semibold">
-            {editorMode === 'synopsis' && 'あらすじ'}
-            {editorMode === 'notes' && '資料ノート'}
-            {editorMode === 'document' && (currentDoc?.title || '新規ドキュメント')}
+            {currentDoc?.title || currentProject?.name || 'プロジェクト'}
           </h1>
-          <span className="text-sm text-muted-foreground">
-            {currentProject.name}
-          </span>
+          <span className="text-sm text-muted-foreground">{currentProject?.name}</span>
         </div>
+        
         <div className="flex items-center gap-2">
-          {editorMode === 'document' && currentDoc && (
+          {editorMode === 'document' && (
             <>
-              <span className="text-sm text-muted-foreground">
-                {currentDoc.content.length.toLocaleString()} 文字
-              </span>
               <Button
                 variant={showStats ? 'default' : 'ghost'}
                 size="sm"
@@ -245,8 +248,9 @@ export default function Editor() {
           {showProjectSidebar && (
             <>
               <Panel defaultSize={15} minSize={10} maxSize={30}>
-                <ProjectSidebar
-                  project={currentProject}
+                {currentProject && (
+                  <ProjectSidebar
+                    project={currentProject}
                   currentDocumentId={currentDocumentId}
                   onDocumentSelect={(id) => {
                     setCurrentDocumentId(id);
@@ -256,16 +260,17 @@ export default function Editor() {
                   onDocumentDelete={handleDocumentDelete}
                   onShowSynopsis={handleShowSynopsis}
                   onShowNotes={handleShowNotes}
-                />
+                  />
+                )}
               </Panel>
               <PanelResizeHandle className="w-1 bg-border hover:bg-primary transition-colors" />
             </>
           )}
 
-          {/* アウトラインサイドバー（ドキュメントモードのみ） */}
-          {showOutlineSidebar && editorMode === 'document' && (
+          {/* アウトラインビュー時: アウトライン + エディタの2カラム */}
+          {isOutlineView && editorMode === 'document' && currentDoc && (
             <>
-              <Panel defaultSize={15} minSize={10} maxSize={30}>
+              <Panel defaultSize={25} minSize={15} maxSize={40}>
                 <div className="h-full flex flex-col">
                   <div className="flex-1 overflow-hidden">
                     <OutlineView
@@ -276,21 +281,123 @@ export default function Editor() {
                       onIndentChange={handleIndentChange}
                     />
                   </div>
-                  {showStats && currentDoc && (
+                  {showStats && (
                     <CharacterStats
                       content={currentDoc.content}
                       selectedText={selectedText}
                     />
                   )}
+                  {showTags && (
+                    <TagManager 
+                      content={currentDoc.content}
+                      tags={{}}
+                      onTagUpdate={() => {}}
+                    />
+                  )}
                 </div>
               </Panel>
               <PanelResizeHandle className="w-1 bg-border hover:bg-primary transition-colors" />
+              <Panel defaultSize={75} minSize={50}>
+                <div className="h-full overflow-y-auto p-8">
+                  <div className="max-w-4xl mx-auto">
+                    <h2 className="text-2xl font-bold mb-4">アウトライン表示</h2>
+                    <p className="text-sm text-muted-foreground mb-2">Items: {outlineItems.length}</p>
+                    <div className="space-y-2">
+                      {outlineItems.map((item) => (
+                        <div
+                          key={item.id}
+                          className="p-2 hover:bg-accent rounded cursor-pointer"
+                          style={{ paddingLeft: `${item.level * 16}px` }}
+                          onClick={() => handleOutlineItemClick(item)}
+                        >
+                          <span style={{ fontSize: `${20 - item.level * 2}px` }}>
+                            {item.text}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </Panel>
             </>
           )}
 
-          {/* エディタエリア */}
-          <Panel defaultSize={70} minSize={30}>
-            <div className="h-full overflow-hidden">
+          {/* プレビュービュー時: エディタ + プレビューの2カラム */}
+          {isPreviewView && editorMode === 'document' && currentDoc && (
+            <>
+              <Panel defaultSize={50} minSize={30}>
+                <MarkdownEditor
+                  value={currentDoc.content}
+                  onChange={handleContentChange}
+                  onSelectionChange={setSelectedText}
+                  onCursorChange={(pos) => setCursorPosition({ line: pos, ch: 0 })}
+                />
+              </Panel>
+              <PanelResizeHandle className="w-1 bg-border hover:bg-primary transition-colors" />
+              <Panel defaultSize={50} minSize={30}>
+                <MarkdownPreview 
+                  content={currentDoc.content}
+                />
+              </Panel>
+            </>
+          )}
+
+          {/* Markdown/Plainビュー時: 通常の3カラム（アウトライン + エディタ + ミニマップ） */}
+          {!isOutlineView && !isPreviewView && editorMode === 'document' && currentDoc && (
+            <>
+              {showOutlineSidebar && (
+                <>
+                  <Panel defaultSize={15} minSize={10} maxSize={30}>
+                    <div className="h-full flex flex-col">
+                      <div className="flex-1 overflow-hidden">
+                        <OutlineView
+                          items={outlineItems}
+                          onItemClick={handleOutlineItemClick}
+                          onToggle={handleOutlineToggle}
+                          onReorder={handleOutlineReorder}
+                          onIndentChange={handleIndentChange}
+                        />
+                      </div>
+                      {showStats && (
+                        <CharacterStats
+                          content={currentDoc.content}
+                          selectedText={selectedText}
+                        />
+                      )}
+                      {showTags && (
+                        <TagManager 
+                          content={currentDoc.content}
+                          tags={{}}
+                          onTagUpdate={() => {}}
+                        />
+                      )}
+                    </div>
+                  </Panel>
+                  <PanelResizeHandle className="w-1 bg-border hover:bg-primary transition-colors" />
+                </>
+              )}
+              <Panel defaultSize={70} minSize={30}>
+                {viewMode === 'markdown' && (
+                  <MarkdownEditor
+                    value={currentDoc.content}
+                    onChange={handleContentChange}
+                    onSelectionChange={setSelectedText}
+                    onCursorChange={(pos) => setCursorPosition({ line: pos, ch: 0 })}
+                  />
+                )}
+                {viewMode === 'plain' && (
+                  <PlainTextView 
+                    content={currentDoc.content}
+                    onChange={handleContentChange}
+                  />
+                )}
+              </Panel>
+            </>
+          )}
+
+          {/* あらすじ・資料ノート表示時: 右カラムに表示 */}
+          {(editorMode === 'synopsis' || editorMode === 'notes') && currentProject && (
+            <Panel defaultSize={85} minSize={50}>
               {editorMode === 'synopsis' && (
                 <SynopsisEditor
                   synopsis={currentProject.synopsis}
@@ -298,7 +405,6 @@ export default function Editor() {
                   onClose={() => setEditorMode('document')}
                 />
               )}
-              
               {editorMode === 'notes' && (
                 <NotesEditor
                   notes={currentProject.notes}
@@ -306,87 +412,30 @@ export default function Editor() {
                   onClose={() => setEditorMode('document')}
                 />
               )}
-              
-              {editorMode === 'document' && currentDoc && (
-                <>
-                  {viewMode === 'markdown' && (
-                    <MarkdownEditor
-                      value={currentDoc.content}
-                      onChange={handleContentChange}
-                      onSelectionChange={setSelectedText}
-                      onCursorChange={setCursorPosition}
-                    />
-                  )}
-                  {viewMode === 'preview' && (
-                    <MarkdownPreview 
-                      content={currentDoc.content} 
-                      onChange={handleContentChange}
-                    />
-                  )}
-                  {viewMode === 'plain' && (
-                    <PlainTextView 
-                      content={currentDoc.content}
-                      onChange={handleContentChange}
-                    />
-                  )}
-                  {viewMode === 'outline' && (
-                    <div className="h-full overflow-y-auto p-8">
-                      <div className="max-w-4xl mx-auto">
-                        <h2 className="text-2xl font-bold mb-4">アウトライン表示</h2>
-                        <div className="space-y-2">
-                          {outlineItems.map((item) => (
-                            <div
-                              key={item.id}
-                              className="p-2 hover:bg-accent rounded cursor-pointer"
-                              style={{ paddingLeft: `${item.level * 16}px` }}
-                              onClick={() => handleOutlineItemClick(item)}
-                            >
-                              <span style={{ fontSize: `${20 - item.level * 2}px` }}>
-                                {item.text}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
-              
-              {editorMode === 'document' && !currentDoc && (
-                <div className="h-full flex items-center justify-center">
-                  <div className="text-center">
-                    <FileText className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-                    <p className="text-lg text-muted-foreground mb-4">
-                      ドキュメントが選択されていません
-                    </p>
-                    <Button onClick={() => handleDocumentCreate('新規ドキュメント')}>
-                      新規ドキュメントを作成
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </Panel>
+            </Panel>
+          )}
 
-          {/* タグサイドバー（ドキュメントモードのみ） */}
-          {showTags && editorMode === 'document' && currentDoc && (
-            <>
-              <PanelResizeHandle className="w-1 bg-border hover:bg-primary transition-colors" />
-              <Panel defaultSize={20} minSize={15} maxSize={40}>
-                <TagManager
-                  content={currentDoc.content}
-                  tags={currentProject.tags}
-                  onTagUpdate={handleTagUpdate}
-                />
-              </Panel>
-            </>
+          {/* ドキュメントが選択されていない場合 */}
+          {editorMode === 'document' && !currentDoc && (
+            <Panel defaultSize={85} minSize={50}>
+              <div className="h-full flex items-center justify-center">
+                <div className="text-center">
+                  <FileText className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+                  <p className="text-lg text-muted-foreground mb-4">
+                    ドキュメントが選択されていません
+                  </p>
+                  <Button onClick={() => handleDocumentCreate('新規ドキュメント')}>
+                    新規ドキュメントを作成
+                  </Button>
+                </div>
+              </div>
+            </Panel>
           )}
         </PanelGroup>
       </div>
 
       {/* フローティングミニマップ */}
-      {showFloatingMinimap && editorMode === 'document' && currentDoc && (
+      {showFloatingMinimap && currentDoc && (
         <FloatingMinimap
           content={currentDoc.content}
           outlineItems={outlineItems}
@@ -396,12 +445,14 @@ export default function Editor() {
       )}
 
       {/* 保存ダイアログ */}
-      <SaveDialog
-        open={saveDialogOpen}
-        onOpenChange={setSaveDialogOpen}
-        currentName={currentProject.name}
-        onSave={handleSave}
-      />
+      {currentProject && (
+        <SaveDialog
+          open={saveDialogOpen}
+          onOpenChange={setSaveDialogOpen}
+          onSave={handleSave}
+          currentName={currentProject.name}
+        />
+      )}
     </div>
   );
 }
