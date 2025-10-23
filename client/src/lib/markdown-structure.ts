@@ -76,8 +76,20 @@ export function reorderMarkdownByOutline(
   oldOutline: OutlineItem[],
   newOutline: OutlineItem[]
 ): string {
+  // #記号付きの見出しがない場合は、並び替えをサポートしない
+  // （元のコンテンツをそのまま返す）
+  const hasHashHeadings = content.split('\n').some(line => /^#{1,6}\s+/.test(line));
+  if (!hasHashHeadings) {
+    console.warn('reorderMarkdownByOutline: No hash headings found, returning original content');
+    return content;
+  }
+  
   const lines = content.split('\n');
   const sections = parseMarkdownSections(content);
+  
+  console.log('Sections found:', sections.length);
+  console.log('Sections:', sections.map(s => ({ level: s.level, heading: s.heading })));
+  console.log('New outline:', newOutline.map(i => ({ level: i.level, text: i.text })));
   
   // セクションとその子セクションを取得
   const getSectionWithChildren = (section: MarkdownSection): string[] => {
@@ -112,6 +124,7 @@ export function reorderMarkdownByOutline(
   }
   
   // 新しい順序でセクションを追加
+  let foundAnySection = false;
   newOutline.forEach(item => {
     // テキストとレベルでセクションを検索
     const section = sections.find(s => 
@@ -121,6 +134,7 @@ export function reorderMarkdownByOutline(
     );
     
     if (section) {
+      foundAnySection = true;
       const sectionLines = getSectionWithChildren(section);
       if (sectionLines.length > 0) {
         newLines.push(...sectionLines);
@@ -134,8 +148,19 @@ export function reorderMarkdownByOutline(
         processedSections.add(sections[i]);
         i++;
       }
+    } else {
+      console.warn(`Section not found: "${item.text}" (level ${item.level})`);
     }
   });
+  
+  // セクションが1つも見つからなかった場合は、元のコンテンツを返す
+  if (!foundAnySection) {
+    console.warn('reorderMarkdownByOutline: No sections matched, returning original content');
+    return content;
+  }
+  
+  console.log('New lines count:', newLines.length);
+  console.log('Original lines count:', lines.length);
   
   return newLines.join('\n');
 }
