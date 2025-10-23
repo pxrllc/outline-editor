@@ -81,6 +81,22 @@ export default function Editor() {
     // TODO: ドキュメントの実際の構造も並び替える
   };
 
+  const handleIndentChange = (itemId: string, newLevel: number) => {
+    if (!currentDoc) return;
+    
+    const item = outlineItems.find(i => i.id === itemId);
+    if (!item) return;
+    
+    // Markdownの見出しレベルを変更
+    const lines = currentDoc.content.split('\n');
+    const targetLine = lines[item.line];
+    const newHeading = '#'.repeat(newLevel) + targetLine.substring(item.level);
+    lines[item.line] = newHeading;
+    
+    const newContent = lines.join('\n');
+    updateDocumentContent(newContent);
+  };
+
   const handleMinimapLineClick = (line: number) => {
     console.log('Jump to line from minimap:', line);
   };
@@ -248,6 +264,7 @@ export default function Editor() {
                       onItemClick={handleOutlineItemClick}
                       onToggle={handleOutlineToggle}
                       onReorder={handleOutlineReorder}
+                      onIndentChange={handleIndentChange}
                     />
                   </div>
                   {showStats && currentDoc && (
