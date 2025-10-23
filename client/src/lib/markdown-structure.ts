@@ -76,15 +76,32 @@ export function reorderMarkdownByOutline(
   oldOutline: OutlineItem[],
   newOutline: OutlineItem[]
 ): string {
+  console.log('=== reorderMarkdownByOutline called ===');
+  console.log('Content type:', typeof content);
+  console.log('Content length:', content.length);
+  console.log('Content preview (first 200 chars):', content.substring(0, 200));
+  
   // #記号付きの見出しがない場合は、並び替えをサポートしない
   // （元のコンテンツをそのまま返す）
-  const hasHashHeadings = content.split('\n').some(line => /^#{1,6}\s+/.test(line));
+  const lines = content.split('\n');
+  console.log('Lines count:', lines.length);
+  console.log('First 5 lines:', lines.slice(0, 5));
+  
+  const hasHashHeadings = lines.some(line => {
+    const matches = /^#{1,6}\s+/.test(line);
+    if (matches) {
+      console.log('Found hash heading:', line);
+    }
+    return matches;
+  });
+  
+  console.log('hasHashHeadings:', hasHashHeadings);
+  
   if (!hasHashHeadings) {
     console.warn('reorderMarkdownByOutline: No hash headings found, returning original content');
     return content;
   }
   
-  const lines = content.split('\n');
   const sections = parseMarkdownSections(content);
   
   console.log('Sections found:', sections.length);
