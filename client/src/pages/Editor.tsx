@@ -77,8 +77,14 @@ export default function Editor() {
   };
 
   const handleOutlineReorder = (newItems: OutlineItem[]) => {
+    if (!currentDoc) return;
+    
+    // Markdownドキュメントの構造を並び替える
+    const { reorderMarkdownByOutline } = require('@/lib/markdown-structure');
+    const newContent = reorderMarkdownByOutline(currentDoc.content, outlineItems, newItems);
+    
+    updateDocumentContent(newContent);
     setOutlineItems(newItems);
-    // TODO: ドキュメントの実際の構造も並び替える
   };
 
   const handleIndentChange = (itemId: string, newLevel: number) => {
@@ -87,13 +93,16 @@ export default function Editor() {
     const item = outlineItems.find(i => i.id === itemId);
     if (!item) return;
     
-    // Markdownの見出しレベルを変更
-    const lines = currentDoc.content.split('\n');
-    const targetLine = lines[item.line];
-    const newHeading = '#'.repeat(newLevel) + targetLine.substring(item.level);
-    lines[item.line] = newHeading;
+    // Markdownの見出しレベルを変更（子要素も含めて）
+    const { changeHeadingLevel } = require('@/lib/markdown-structure');
+    const newContent = changeHeadingLevel(
+      currentDoc.content,
+      item.line,
+      item.level,
+      newLevel,
+      true // 子要素も含めて変更
+    );
     
-    const newContent = lines.join('\n');
     updateDocumentContent(newContent);
   };
 

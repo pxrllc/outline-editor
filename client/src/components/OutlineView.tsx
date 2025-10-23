@@ -158,7 +158,7 @@ export default function OutlineView({ items, onItemClick, onToggle, onReorder, o
             onChange={(e) => setMoveWithChildren(e.target.checked)}
             className="rounded"
           />
-          子要素を含めて移動
+          子要素以下も含めて移動
         </label>
       </div>
       
