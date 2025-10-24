@@ -140,25 +140,16 @@ export function reorderMarkdownByOutline(
     }
   }
   
-  // トップレベルの項目のみを抽出（親を持たない項目）
+  // トップレベルの項目のみを抽出（最小レベルの項目）
   const getTopLevelItems = (items: OutlineItem[]): OutlineItem[] => {
-    const topLevel: OutlineItem[] = [];
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i];
-      // 前の項目がこの項目の親でないかチェック
-      let isTopLevel = true;
-      for (let j = i - 1; j >= 0; j--) {
-        if (items[j].level < item.level) {
-          // 親が見つかった
-          isTopLevel = false;
-          break;
-        }
-      }
-      if (isTopLevel) {
-        topLevel.push(item);
-      }
-    }
-    return topLevel;
+    if (items.length === 0) return [];
+    
+    // 最小レベルを見つける
+    const minLevel = Math.min(...items.map(item => item.level));
+    console.log('Min level:', minLevel);
+    
+    // 最小レベルの項目のみを返す
+    return items.filter(item => item.level === minLevel);
   };
   
   const topLevelItems = getTopLevelItems(newOutline);
