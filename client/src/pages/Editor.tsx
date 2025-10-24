@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useEditor } from '@/contexts/EditorContext';
 import { OutlineItem } from '@/types';
 import { parseOutline } from '@/lib/outline';
@@ -66,6 +66,19 @@ export default function Editor() {
   const [showFloatingMinimap, setShowFloatingMinimap] = useState(false);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
 
+  // 各ドキュメントのコンテンツを保持するref
+  const documentContentsRef = useRef<Record<string, string>>({});
+
+  // ドキュメントが読み込まれたときに、refからコンテンツを初期化
+  useEffect(() => {
+    if (currentDoc && currentDocumentId) {
+      // refにコンテンツがない場合は、ドキュメントのコンテンツで初期化
+      if (!documentContentsRef.current[currentDocumentId]) {
+        documentContentsRef.current[currentDocumentId] = currentDoc.content || '';
+      }
+    }
+  }, [currentDoc, currentDocumentId]);
+
   useEffect(() => {
     if (currentDoc) {
       console.log('=== useEffect parsing outline ===');
@@ -82,6 +95,10 @@ export default function Editor() {
   }, [currentDoc, viewMode]);
 
   const handleContentChange = (newContent: string) => {
+    // 現在のドキュメントのコンテンツをrefに保存
+    if (currentDocumentId) {
+      documentContentsRef.current[currentDocumentId] = newContent;
+    }
     updateDocumentContent(newContent);
   };
 
@@ -290,6 +307,13 @@ export default function Editor() {
                     project={currentProject}
                   currentDocumentId={currentDocumentId}
                   onDocumentSelect={(id) => {
+                    // ドキュメント切り替え前に、現在のドキュメントのコンテンツを保存
+                    if (currentDocumentId) {
+                      const contentToSave = documentContentsRef.current[currentDocumentId] || currentDoc?.content || '';
+                      if (contentToSave) {
+                        updateDocumentContent(contentToSave);
+                      }
+                    }
                     setCurrentDocumentId(id);
                     setEditorMode('document');
                   }}
@@ -364,7 +388,7 @@ export default function Editor() {
             <>
               <Panel defaultSize={50} minSize={30}>
                 <MarkdownEditor
-                  value={currentDoc.content}
+                  value={currentDocumentId ? (documentContentsRef.current[currentDocumentId] || currentDoc.content) : currentDoc.content}
                   onChange={handleContentChange}
                   onSelectionChange={setSelectedText}
                   onCursorChange={(pos) => setCursorPosition({ line: pos, ch: 0 })}
@@ -416,7 +440,7 @@ export default function Editor() {
               <Panel defaultSize={70} minSize={30}>
                 {viewMode === 'markdown' && (
                   <MarkdownEditor
-                    value={currentDoc.content}
+                    value={currentDocumentId ? (documentContentsRef.current[currentDocumentId] || currentDoc.content) : currentDoc.content}
                     onChange={handleContentChange}
                     onSelectionChange={setSelectedText}
                     onCursorChange={(pos) => setCursorPosition({ line: pos, ch: 0 })}
@@ -424,7 +448,7 @@ export default function Editor() {
                 )}
                 {viewMode === 'plain' && (
                   <PlainTextView 
-                    content={currentDoc.content}
+                    content={currentDocumentId ? (documentContentsRef.current[currentDocumentId] || currentDoc.content) : currentDoc.content}
                     onChange={handleContentChange}
                   />
                 )}
