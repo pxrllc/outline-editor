@@ -9,6 +9,7 @@ interface EditorContextType extends EditorState {
   setSelectedText: (text: string) => void;
   setCursorPosition: (position: number) => void;
   updateDocumentContent: (content: string) => void;
+  updateDocumentTitle: (title: string) => void;
   getCurrentDocument: () => Document | null;
   createNewDocument: (title: string) => Document;
   deleteDocument: (documentId: string) => void;
@@ -43,6 +44,23 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
     const updatedDocuments = currentProject.documents.map(doc => 
       doc.id === currentDocumentId 
         ? { ...doc, content, updatedAt: Date.now() }
+        : doc
+    );
+    
+    setCurrentProject({
+      ...currentProject,
+      documents: updatedDocuments,
+      updatedAt: Date.now()
+    });
+  }, [currentProject, currentDocumentId]);
+
+  // ドキュメントのタイトルを更新
+  const updateDocumentTitle = useCallback((title: string) => {
+    if (!currentProject || !currentDocumentId) return;
+    
+    const updatedDocuments = currentProject.documents.map(doc => 
+      doc.id === currentDocumentId 
+        ? { ...doc, title, updatedAt: Date.now() }
         : doc
     );
     
@@ -271,6 +289,7 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
     setSelectedText,
     setCursorPosition,
     updateDocumentContent,
+    updateDocumentTitle,
     getCurrentDocument,
     createNewDocument,
     deleteDocument,

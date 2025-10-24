@@ -36,6 +36,7 @@ export default function Editor() {
     currentDocumentId,
     setCurrentDocumentId,
     updateDocumentContent,
+    updateDocumentTitle,
     getCurrentDocument,
     createNewDocument,
     deleteDocument,
@@ -47,6 +48,8 @@ export default function Editor() {
   const currentDoc = getCurrentDocument();
 
   const [viewMode, setViewMode] = useState<ViewMode>('markdown');
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [editedTitle, setEditedTitle] = useState('');
   
   // viewMode変更をログ出力
   useEffect(() => {
@@ -191,9 +194,43 @@ export default function Editor() {
           >
             <Menu className="w-4 h-4" />
           </Button>
-          <h1 className="text-lg font-semibold">
-            {currentDoc?.title || currentProject?.name || 'プロジェクト'}
-          </h1>
+          {isEditingTitle && currentDoc ? (
+            <input
+              type="text"
+              value={editedTitle}
+              onChange={(e) => setEditedTitle(e.target.value)}
+              onBlur={() => {
+                if (editedTitle.trim()) {
+                  updateDocumentTitle(editedTitle.trim());
+                }
+                setIsEditingTitle(false);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  if (editedTitle.trim()) {
+                    updateDocumentTitle(editedTitle.trim());
+                  }
+                  setIsEditingTitle(false);
+                } else if (e.key === 'Escape') {
+                  setIsEditingTitle(false);
+                }
+              }}
+              className="text-lg font-semibold bg-transparent border-b border-primary focus:outline-none px-2"
+              autoFocus
+            />
+          ) : (
+            <h1 
+              className="text-lg font-semibold cursor-pointer hover:text-primary transition-colors px-2"
+              onClick={() => {
+                if (currentDoc) {
+                  setEditedTitle(currentDoc.title);
+                  setIsEditingTitle(true);
+                }
+              }}
+            >
+              {currentDoc?.title || currentProject?.name || 'プロジェクト'}
+            </h1>
+          )}
           <span className="text-sm text-muted-foreground">{currentProject?.name}</span>
         </div>
         
@@ -449,8 +486,8 @@ export default function Editor() {
         <SaveDialog
           open={saveDialogOpen}
           onOpenChange={setSaveDialogOpen}
-          onSave={handleSave}
-          currentName={currentProject.name}
+          currentProject={currentProject}
+          currentDocument={currentDoc}
         />
       )}
     </div>
