@@ -140,9 +140,33 @@ export function reorderMarkdownByOutline(
     }
   }
   
-  // 新しい順序でセクションを追加
+  // トップレベルの項目のみを抽出（親を持たない項目）
+  const getTopLevelItems = (items: OutlineItem[]): OutlineItem[] => {
+    const topLevel: OutlineItem[] = [];
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      // 前の項目がこの項目の親でないかチェック
+      let isTopLevel = true;
+      for (let j = i - 1; j >= 0; j--) {
+        if (items[j].level < item.level) {
+          // 親が見つかった
+          isTopLevel = false;
+          break;
+        }
+      }
+      if (isTopLevel) {
+        topLevel.push(item);
+      }
+    }
+    return topLevel;
+  };
+  
+  const topLevelItems = getTopLevelItems(newOutline);
+  console.log('Top level items:', topLevelItems.map(i => ({ level: i.level, text: i.text })));
+  
+  // 新しい順序でセクションを追加（トップレベルのみ）
   let foundAnySection = false;
-  newOutline.forEach(item => {
+  topLevelItems.forEach(item => {
     // テキストとレベルでセクションを検索
     const section = sections.find(s => 
       s.heading === item.text && 
