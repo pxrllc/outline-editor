@@ -28,30 +28,66 @@
 
 ## プロジェクト構成
 
-このプロジェクトはモノレポ構成を採用しており、以下のディレクトリ構造で構成されています：
+このプロジェクトはモノレポ構成を採用していますが、**現在はフロントエンドのみのアプリケーション**として実装されています。将来的なバックエンド機能の追加に備えて、ディレクトリ構造を整理しています。
 
 ```
 outline-editor/
-├── client/          # フロントエンドアプリケーション
+├── client/          # フロントエンドアプリケーション（メインの実装）
 │   ├── src/        # Reactソースコード
 │   │   ├── components/  # UIコンポーネント
+│   │   │   ├── MarkdownEditor.tsx    # CodeMirror 6ベースのエディタ
+│   │   │   ├── OutlineView.tsx       # アウトライン表示・編集
+│   │   │   ├── ProjectSidebar.tsx    # プロジェクト管理サイドバー
+│   │   │   ├── FloatingMinimap.tsx   # フローティングミニマップ
+│   │   │   ├── CharacterStats.tsx    # 文字数カウント
+│   │   │   ├── TagManager.tsx        # タグ辞書管理
+│   │   │   └── ...                   # その他のUIコンポーネント
 │   │   ├── contexts/    # React Context（状態管理）
+│   │   │   └── EditorContext.tsx     # プロジェクト・ドキュメント状態管理
 │   │   ├── lib/         # ユーティリティ関数
+│   │   │   ├── outline.ts            # アウトライン解析
+│   │   │   └── markdown-structure.ts # Markdown構造解析・操作
 │   │   └── pages/       # ページコンポーネント
+│   │       └── Editor.tsx            # メインエディタページ
 │   ├── public/     # 静的ファイル
 │   └── index.html  # エントリーポイント
-├── server/         # バックエンド（将来の拡張用）
-├── shared/         # フロントエンドとバックエンドで共有するコード
+├── server/         # バックエンド（将来の拡張用・現在は未使用）
+├── shared/         # フロントエンドとバックエンドで共有するコード（将来の拡張用・現在は未使用）
 ├── patches/        # 依存パッケージのパッチ
 └── README.md       # プロジェクトドキュメント
 ```
 
 ### 主要なディレクトリの説明
 
-- **`client/src/components/`**: 再利用可能なUIコンポーネント（MarkdownEditor、OutlineView、ProjectSidebar等）
-- **`client/src/contexts/`**: React Contextによる状態管理（EditorContext）
-- **`client/src/pages/`**: ページレベルのコンポーネント（Editor、Home等）
-- **`client/src/lib/`**: ユーティリティ関数（アウトライン解析、Markdown処理等）
+#### `client/` - フロントエンドアプリケーション
+現在のアプリケーションの全機能がこのディレクトリに実装されています。
+
+- **`client/src/components/`**: 再利用可能なUIコンポーネント
+  - `MarkdownEditor.tsx`: CodeMirror 6を使用したMarkdownエディタ。ドキュメントIDをkeyとして使用し、ドキュメント切り替え時に完全に再作成される
+  - `OutlineView.tsx`: ドキュメントの階層構造を表示し、ドラッグ&ドロップでの並び替えやインデント調整が可能
+  - `ProjectSidebar.tsx`: プロジェクト、ドキュメント、あらすじ、資料ノートの管理UI
+  - `FloatingMinimap.tsx`: ドキュメント全体の縮小表示と透過・ドラッグ機能
+  - `CharacterStats.tsx`: 文字数カウント、検索文字列カウント、ハイライト機能
+  - `TagManager.tsx`: `[[tag_name]]`形式のタグ辞書管理
+
+- **`client/src/contexts/`**: React Contextによる状態管理
+  - `EditorContext.tsx`: プロジェクト、ドキュメント、コンテンツの状態を管理し、localStorageへの永続化を担当
+
+- **`client/src/pages/`**: ページレベルのコンポーネント
+  - `Editor.tsx`: メインのエディタページ。レイアウト管理、ビュー切り替え、パネル制御を担当
+
+- **`client/src/lib/`**: ユーティリティ関数
+  - `outline.ts`: Markdownテキストからアウトライン構造を抽出
+  - `markdown-structure.ts`: Markdownドキュメントの構造解析と並び替え処理
+
+#### `server/` と `shared/` - 将来の拡張用
+現在は未使用ですが、将来的に以下の機能を追加する際に使用する予定です：
+- クラウド同期機能（有料機能）
+- Web公開機能
+- マルチユーザー対応
+- APIベースのデータ管理
+
+現時点では、全てのデータはブラウザのlocalStorageに保存され、サーバーとの通信は行われません。
 
 ## 技術スタック
 
