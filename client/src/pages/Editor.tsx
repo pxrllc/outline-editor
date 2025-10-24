@@ -66,18 +66,7 @@ export default function Editor() {
   const [showFloatingMinimap, setShowFloatingMinimap] = useState(false);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
 
-  // 各ドキュメントのコンテンツを保持するref
-  const documentContentsRef = useRef<Record<string, string>>({});
-
-  // ドキュメントが読み込まれたときに、refからコンテンツを初期化
-  useEffect(() => {
-    if (currentDoc && currentDocumentId) {
-      // refにコンテンツがない場合は、ドキュメントのコンテンツで初期化
-      if (!documentContentsRef.current[currentDocumentId]) {
-        documentContentsRef.current[currentDocumentId] = currentDoc.content || '';
-      }
-    }
-  }, [currentDoc, currentDocumentId]);
+  // localStorageのみでコンテンツを管理するため、refは不要
 
   useEffect(() => {
     if (currentDoc) {
@@ -95,10 +84,7 @@ export default function Editor() {
   }, [currentDoc, viewMode]);
 
   const handleContentChange = (newContent: string) => {
-    // 現在のドキュメントのコンテンツをrefに保存
-    if (currentDocumentId) {
-      documentContentsRef.current[currentDocumentId] = newContent;
-    }
+    // 即座にlocalStorageに保存
     updateDocumentContent(newContent);
   };
 
@@ -307,13 +293,7 @@ export default function Editor() {
                     project={currentProject}
                   currentDocumentId={currentDocumentId}
                   onDocumentSelect={(id) => {
-                    // ドキュメント切り替え前に、現在のドキュメントのコンテンツを保存
-                    if (currentDocumentId) {
-                      const contentToSave = documentContentsRef.current[currentDocumentId] || currentDoc?.content || '';
-                      if (contentToSave) {
-                        updateDocumentContent(contentToSave);
-                      }
-                    }
+                    // ドキュメント切り替え（localStorageには既に保存済み）
                     setCurrentDocumentId(id);
                     setEditorMode('document');
                   }}
@@ -388,7 +368,7 @@ export default function Editor() {
             <>
               <Panel defaultSize={50} minSize={30}>
                 <MarkdownEditor
-                  value={currentDocumentId ? (documentContentsRef.current[currentDocumentId] || currentDoc.content) : currentDoc.content}
+                  value={currentDoc.content}
                   onChange={handleContentChange}
                   onSelectionChange={setSelectedText}
                   onCursorChange={(pos) => setCursorPosition({ line: pos, ch: 0 })}
@@ -440,7 +420,7 @@ export default function Editor() {
               <Panel defaultSize={70} minSize={30}>
                 {viewMode === 'markdown' && (
                   <MarkdownEditor
-                    value={currentDocumentId ? (documentContentsRef.current[currentDocumentId] || currentDoc.content) : currentDoc.content}
+                    value={currentDoc.content}
                     onChange={handleContentChange}
                     onSelectionChange={setSelectedText}
                     onCursorChange={(pos) => setCursorPosition({ line: pos, ch: 0 })}
@@ -448,7 +428,7 @@ export default function Editor() {
                 )}
                 {viewMode === 'plain' && (
                   <PlainTextView 
-                    content={currentDocumentId ? (documentContentsRef.current[currentDocumentId] || currentDoc.content) : currentDoc.content}
+                    content={currentDoc.content}
                     onChange={handleContentChange}
                   />
                 )}

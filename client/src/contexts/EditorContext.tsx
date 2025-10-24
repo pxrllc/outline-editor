@@ -54,11 +54,21 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
         : doc
     );
     
-    setCurrentProject({
+    const updatedProject = {
       ...currentProject,
       documents: updatedDocuments,
       updatedAt: Date.now()
-    });
+    };
+    
+    setCurrentProject(updatedProject);
+    
+    // 即座にlocalStorageに保存
+    try {
+      localStorage.setItem('projects', JSON.stringify([updatedProject]));
+      console.log('Content saved immediately to localStorage');
+    } catch (error) {
+      console.error('Failed to save to localStorage:', error);
+    }
   }, [currentProject, currentDocumentId]);
 
   // ドキュメントのタイトルを更新
@@ -78,11 +88,21 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
         : doc
     );
     
-    setCurrentProject({
+    const updatedProject = {
       ...currentProject,
       documents: updatedDocuments,
       updatedAt: Date.now()
-    });
+    };
+    
+    setCurrentProject(updatedProject);
+    
+    // 即座にlocalStorageに保存
+    try {
+      localStorage.setItem('projects', JSON.stringify([updatedProject]));
+      console.log('Title updated and saved immediately to localStorage');
+    } catch (error) {
+      console.error('Failed to save to localStorage:', error);
+    }
   }, [currentProject, currentDocumentId]);
 
   // 新しいドキュメントを作成
@@ -291,30 +311,30 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
     }
   }, [currentProject]);
 
-  // currentProjectの変更を監視してdebounce付きで自動保存
-  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  
-  useEffect(() => {
-    // 既存のタイマーをクリア
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
-    }
-    
-    // currentProjectが変更されてから1秒後に保存
-    if (currentProject) {
-      saveTimeoutRef.current = setTimeout(() => {
-        saveProject();
-      }, 1000);
-    }
-    
-    return () => {
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-      }
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentProject]);
-  // saveProjectは依存配列に含めない（currentProjectの変更により再作成されるため、無限ループを引き起こす）
+  // 自動保存は各更新関数内で即座に実行されるため、debounce付きの自動保存は不要
+  // const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // 
+  // useEffect(() => {
+  //   // 既存のタイマーをクリア
+  //   if (saveTimeoutRef.current) {
+  //     clearTimeout(saveTimeoutRef.current);
+  //   }
+  //   
+  //   // currentProjectが変更されてから1秒後に保存
+  //   if (currentProject) {
+  //     saveTimeoutRef.current = setTimeout(() => {
+  //       saveProject();
+  //     }, 1000);
+  //   }
+  //   
+  //   return () => {
+  //     if (saveTimeoutRef.current) {
+  //       clearTimeout(saveTimeoutRef.current);
+  //     }
+  //   };
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, [currentProject]);
+  // // saveProjectは依存配列に含めない（currentProjectの変更により再作成されるため、無限ループを引き起こす）
 
   const value: EditorContextType = {
     currentProject,
