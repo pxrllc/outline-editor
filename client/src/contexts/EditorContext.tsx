@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { Project, Document, ViewMode, OutlineItem, EditorState } from '@/types';
 
 interface EditorContextType extends EditorState {
@@ -41,6 +41,13 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
   const updateDocumentContent = useCallback((content: string) => {
     if (!currentProject || !currentDocumentId) return;
     
+    // 現在のドキュメントを取得
+    const currentDoc = currentProject.documents.find(doc => doc.id === currentDocumentId);
+    if (!currentDoc) return;
+    
+    // 内容が変更されていない場合は何もしない
+    if (currentDoc.content === content) return;
+    
     const updatedDocuments = currentProject.documents.map(doc => 
       doc.id === currentDocumentId 
         ? { ...doc, content, updatedAt: Date.now() }
@@ -57,6 +64,13 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
   // ドキュメントのタイトルを更新
   const updateDocumentTitle = useCallback((title: string) => {
     if (!currentProject || !currentDocumentId) return;
+    
+    // 現在のドキュメントを取得
+    const currentDoc = currentProject.documents.find(doc => doc.id === currentDocumentId);
+    if (!currentDoc) return;
+    
+    // タイトルが変更されていない場合は何もしない
+    if (currentDoc.title === title) return;
     
     const updatedDocuments = currentProject.documents.map(doc => 
       doc.id === currentDocumentId 
@@ -274,6 +288,29 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem('lastProjectId', currentProject.id);
     }
   }, [currentProject]);
+
+  // currentProjectの変更を監視してdebounce付きで自動保存
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  useEffect(() => {
+    // 既存のタイマーをクリア
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    
+    // currentProjectが変更されてから1秒後に保存
+    if (currentProject) {
+      saveTimeoutRef.current = setTimeout(() => {
+        saveProject();
+      }, 1000);
+    }
+    
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [currentProject, saveProject]);
 
   const value: EditorContextType = {
     currentProject,
