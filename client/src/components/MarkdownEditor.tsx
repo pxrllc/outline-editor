@@ -18,8 +18,6 @@ export default function MarkdownEditor({
   onCursorChange 
 }: MarkdownEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
-  const viewRef = useRef<EditorView | null>(null);
-  const lastValueRef = useRef<string>(value);
 
   useEffect(() => {
     if (!editorRef.current) return;
@@ -33,11 +31,7 @@ export default function MarkdownEditor({
         EditorView.updateListener.of((update: any) => {
           if (update.docChanged) {
             const newValue = update.state.doc.toString();
-            // lastValueRefと比較して、実際にユーザーが変更した場合のみonChangeを呼び出す
-            if (newValue !== lastValueRef.current) {
-              lastValueRef.current = newValue;
-              onChange(newValue);
-            }
+            onChange(newValue);
           }
           
           // 選択範囲の変更を検知
@@ -70,30 +64,14 @@ export default function MarkdownEditor({
       parent: editorRef.current
     });
 
-    viewRef.current = view;
+
 
     return () => {
       view.destroy();
     };
   }, []);
 
-  // 外部からの値の変更を反映
-  useEffect(() => {
-    if (viewRef.current) {
-      const currentValue = viewRef.current.state.doc.toString();
-      if (currentValue !== value) {
-        // lastValueRefを更新してから、CodeMirrorを更新
-        lastValueRef.current = value;
-        viewRef.current.dispatch({
-          changes: {
-            from: 0,
-            to: currentValue.length,
-            insert: value
-          }
-        });
-      }
-    }
-  }, [value]);
+
 
   return <div ref={editorRef} className="h-full w-full" />;
 }

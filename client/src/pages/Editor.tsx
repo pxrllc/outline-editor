@@ -368,6 +368,7 @@ export default function Editor() {
             <>
               <Panel defaultSize={50} minSize={30}>
                 <MarkdownEditor
+                  key={currentDocumentId}
                   value={currentDoc.content}
                   onChange={handleContentChange}
                   onSelectionChange={setSelectedText}
@@ -420,6 +421,7 @@ export default function Editor() {
               <Panel defaultSize={70} minSize={30}>
                 {viewMode === 'markdown' && (
                   <MarkdownEditor
+                    key={currentDocumentId}
                     value={currentDoc.content}
                     onChange={handleContentChange}
                     onSelectionChange={setSelectedText}
