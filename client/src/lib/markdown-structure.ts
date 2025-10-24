@@ -141,24 +141,9 @@ export function reorderMarkdownByOutline(
     }
   }
   
-  // トップレベルの項目のみを抽出（最小レベルの項目）
-  const getTopLevelItems = (items: OutlineItem[]): OutlineItem[] => {
-    if (items.length === 0) return [];
-    
-    // 最小レベルを見つける
-    const minLevel = Math.min(...items.map(item => item.level));
-    console.log('Min level:', minLevel);
-    
-    // 最小レベルの項目のみを返す
-    return items.filter(item => item.level === minLevel);
-  };
-  
-  const topLevelItems = getTopLevelItems(newOutline);
-  console.log('Top level items:', topLevelItems.map(i => ({ level: i.level, text: i.text })));
-  
-  // 新しい順序でセクションを追加（トップレベルのみ）
+  // 新しい順序でセクションを追加
   let foundAnySection = false;
-  topLevelItems.forEach(item => {
+  newOutline.forEach(item => {
     // テキストとレベルでセクションを検索
     const section = sections.find(s => 
       s.heading === item.text && 
