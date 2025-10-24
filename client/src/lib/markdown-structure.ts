@@ -159,19 +159,13 @@ export function reorderMarkdownByOutline(
     
     if (section) {
       foundAnySection = true;
-      const sectionLines = getSectionWithChildren(section);
-      if (sectionLines.length > 0) {
-        newLines.push(...sectionLines);
+      // セクション自体のみを追加（子セクションは含めない）
+      if (section.content.length > 0) {
+        newLines.push(...section.content);
       }
       
-      // このセクションとその子セクションを処理済みとしてマーク
+      // このセクションを処理済みとしてマーク
       processedSections.add(section);
-      const sectionIndex = sections.indexOf(section);
-      let i = sectionIndex + 1;
-      while (i < sections.length && sections[i].level > section.level) {
-        processedSections.add(sections[i]);
-        i++;
-      }
     } else {
       console.warn(`Section not found: "${item.text}" (level ${item.level})`);
     }
