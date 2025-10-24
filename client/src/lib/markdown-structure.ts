@@ -107,7 +107,13 @@ export function reorderMarkdownByOutline(
   
   console.log('Sections found:', sections.length);
   console.log('Sections:', sections.map(s => ({ level: s.level, heading: s.heading })));
+  sections.forEach((s, idx) => {
+    console.log(`Section ${idx}: level=${s.level}, heading="${s.heading}"`);
+  });
   console.log('New outline:', newOutline.map(i => ({ level: i.level, text: i.text })));
+  newOutline.forEach((item, idx) => {
+    console.log(`Outline ${idx}: level=${item.level}, text="${item.text}"`);
+  });
   
   // セクションとその子セクションを取得
   const getSectionWithChildren = (section: MarkdownSection): string[] => {
