@@ -222,7 +222,9 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
     if (currentProject) {
       saveProject();
     }
-  }, [currentProject, saveProject]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentProject]);
+  // saveProjectは依存配列に含めない（currentProjectの変更により再作成されるため、無限ループを引き起こす）
 
   // 自動保存タイマー（30秒ごと）
   useEffect(() => {
@@ -310,7 +312,9 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
         clearTimeout(saveTimeoutRef.current);
       }
     };
-  }, [currentProject, saveProject]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentProject]);
+  // saveProjectは依存配列に含めない（currentProjectの変更により再作成されるため、無限ループを引き起こす）
 
   const value: EditorContextType = {
     currentProject,

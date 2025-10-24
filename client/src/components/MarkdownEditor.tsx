@@ -19,6 +19,7 @@ export default function MarkdownEditor({
 }: MarkdownEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
+  const isExternalUpdate = useRef(false);
 
   useEffect(() => {
     if (!editorRef.current) return;
@@ -31,8 +32,11 @@ export default function MarkdownEditor({
         oneDark,
         EditorView.updateListener.of((update: any) => {
           if (update.docChanged) {
-            const newValue = update.state.doc.toString();
-            onChange(newValue);
+            // 外部からの更新の場合はonChangeを呼び出さない
+            if (!isExternalUpdate.current) {
+              const newValue = update.state.doc.toString();
+              onChange(newValue);
+            }
           }
           
           // 選択範囲の変更を検知
@@ -77,6 +81,8 @@ export default function MarkdownEditor({
     if (viewRef.current) {
       const currentValue = viewRef.current.state.doc.toString();
       if (currentValue !== value) {
+        // 外部からの更新であることを示すフラグを設定
+        isExternalUpdate.current = true;
         viewRef.current.dispatch({
           changes: {
             from: 0,
@@ -84,6 +90,10 @@ export default function MarkdownEditor({
             insert: value
           }
         });
+        // フラグをリセット（次のイベントループで）
+        setTimeout(() => {
+          isExternalUpdate.current = false;
+        }, 0);
       }
     }
   }, [value]);
