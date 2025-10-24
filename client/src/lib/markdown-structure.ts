@@ -86,6 +86,7 @@ export function reorderMarkdownByOutline(
   const lines = content.split('\n');
   console.log('Lines count:', lines.length);
   console.log('First 5 lines:', lines.slice(0, 5));
+  console.log('Testing regex on first line:', lines[0], '- Match:', /^#{1,6}\s+/.test(lines[0]));
   
   const hasHashHeadings = lines.some(line => {
     const matches = /^#{1,6}\s+/.test(line);
