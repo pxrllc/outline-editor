@@ -26,6 +26,33 @@
 - ドキュメント切り替え時の即座保存
 - データの安全な保持
 
+## プロジェクト構成
+
+このプロジェクトはモノレポ構成を採用しており、以下のディレクトリ構造で構成されています：
+
+```
+outline-editor/
+├── client/          # フロントエンドアプリケーション
+│   ├── src/        # Reactソースコード
+│   │   ├── components/  # UIコンポーネント
+│   │   ├── contexts/    # React Context（状態管理）
+│   │   ├── lib/         # ユーティリティ関数
+│   │   └── pages/       # ページコンポーネント
+│   ├── public/     # 静的ファイル
+│   └── index.html  # エントリーポイント
+├── server/         # バックエンド（将来の拡張用）
+├── shared/         # フロントエンドとバックエンドで共有するコード
+├── patches/        # 依存パッケージのパッチ
+└── README.md       # プロジェクトドキュメント
+```
+
+### 主要なディレクトリの説明
+
+- **`client/src/components/`**: 再利用可能なUIコンポーネント（MarkdownEditor、OutlineView、ProjectSidebar等）
+- **`client/src/contexts/`**: React Contextによる状態管理（EditorContext）
+- **`client/src/pages/`**: ページレベルのコンポーネント（Editor、Home等）
+- **`client/src/lib/`**: ユーティリティ関数（アウトライン解析、Markdown処理等）
+
 ## 技術スタック
 
 - **フロントエンド**: React 18, TypeScript
@@ -33,6 +60,7 @@
 - **スタイリング**: Tailwind CSS, shadcn/ui
 - **ビルドツール**: Vite
 - **状態管理**: React Context API
+- **データ永続化**: localStorage（ブラウザローカルストレージ）
 
 ## 開発履歴
 
@@ -80,12 +108,35 @@
 
 ## セットアップ
 
+### 前提条件
+
+- Node.js 18以上
+- pnpm 8以上
+
+### インストール手順
+
 ```bash
+# リポジトリをクローン
+git clone https://github.com/pxrllc/outline-editor.git
+cd outline-editor
+
 # 依存関係のインストール
 pnpm install
 
 # 開発サーバーの起動
 pnpm dev
+```
+
+開発サーバーが起動したら、ブラウザで `http://localhost:5173` にアクセスしてください。
+
+### ビルド
+
+```bash
+# プロダクションビルド
+pnpm build
+
+# ビルドしたファイルをプレビュー
+pnpm preview
 ```
 
 ## ライセンス
