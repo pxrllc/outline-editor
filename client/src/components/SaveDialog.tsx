@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -31,6 +31,17 @@ export default function SaveDialog({
   const [saveType, setSaveType] = useState<SaveType>('project');
   const [filename, setFilename] = useState('');
   
+  // ダイアログが開かれたときにデフォルトのファイル名を設定
+  useEffect(() => {
+    if (open) {
+      if (saveType === 'project' && currentProject) {
+        setFilename(currentProject.name);
+      } else if (saveType === 'document' && currentDocument) {
+        setFilename(currentDocument.title);
+      }
+    }
+  }, [open, saveType, currentProject, currentDocument]);
+  
   const handleSave = () => {
     if (!filename.trim()) return;
     
@@ -62,17 +73,7 @@ export default function SaveDialog({
     onOpenChange(false);
   };
   
-  // ダイアログが開かれたときにデフォルトのファイル名を設定
-  const handleOpenChange = (open: boolean) => {
-    if (open) {
-      if (saveType === 'project' && currentProject) {
-        setFilename(currentProject.name);
-      } else if (saveType === 'document' && currentDocument) {
-        setFilename(currentDocument.title);
-      }
-    }
-    onOpenChange(open);
-  };
+
   
   // 保存タイプが変更されたときにファイル名を更新
   const handleSaveTypeChange = (type: SaveType) => {
@@ -85,7 +86,7 @@ export default function SaveDialog({
   };
   
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>保存</DialogTitle>
